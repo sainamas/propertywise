@@ -1,185 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>PropertyWise</title>
-
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <!-- ==========================
-         NAVBAR
-    =========================== -->
-    <nav class="navbar">
+    <!-- LOGIN SECTION -->
+    <section id="loginSection" class="login-page">
 
-        <div class="logo">
-            PropertyWise
+        <div class="login-card">
+
+            <div class="brand">
+                <h1>PropertyWise</h1>
+                <p>AI-powered property decision-support platform</p>
+            </div>
+
+            <h2>Sign in</h2>
+            <p class="login-description">
+                Sign in to analyze whether a property is worth buying or selling.
+            </p>
+
+            <form id="loginForm">
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        placeholder="Enter username"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Enter password"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="primary-button">
+                    Sign In
+                </button>
+
+            </form>
+
+            <p id="loginError" class="error-message"></p>
+
+            <div class="demo-login">
+                <p><strong>Demo account</strong></p>
+                <p>Username: demo</p>
+                <p>Password: propertywise123</p>
+            </div>
+
         </div>
 
-        <div class="tagline">
-            AI-powered property decision support
-        </div>
-
-    </nav>
+    </section>
 
 
-    <!-- ==========================
-         MAIN CONTENT
-    =========================== -->
-    <main>
+    <!-- MAIN APPLICATION -->
+    <div id="appSection" class="hidden">
+
+        <!-- NAVBAR -->
+        <nav class="navbar">
+
+            <div class="brand-small">
+                <h2>PropertyWise</h2>
+                <p>AI-powered property decisions</p>
+            </div>
+
+            <button id="logoutButton" class="logout-button">
+                Logout
+            </button>
+
+        </nav>
+
 
         <!-- HERO -->
-        <section class="hero">
+        <main class="container">
 
-            <div class="hero-content">
+            <section class="hero">
 
-                <p class="eyebrow">
-                    PROPERTY DECISION SUPPORT
+                <h1>Should you buy or sell this property?</h1>
+
+                <p>
+                    Enter the property details and PropertyWise will
+                    provide a simple decision analysis.
                 </p>
 
-                <h1>
-                    Should you buy or sell this property?
-                </h1>
-
-                <p class="hero-text">
-                    Enter the basic property details and get an initial
-                    decision-support analysis.
-                </p>
-
-            </div>
-
-        </section>
+            </section>
 
 
-        <!-- ==========================
-             DECISION SELECTION
-        =========================== -->
-        <section class="decision-section">
+            <!-- DECISION SELECTION -->
+            <section class="decision-section">
 
-            <h2>
-                What are you planning to do?
-            </h2>
+                <h2>Select your decision</h2>
 
-            <div class="decision-container">
+                <div class="decision-cards">
 
-                <!-- BUY -->
-                <div
-                    id="buyCard"
-                    class="decision-card active"
-                    onclick="selectDecision('buy')">
+                    <div
+                        id="buyCard"
+                        class="decision-card active"
+                        data-decision="buy"
+                    >
+                        <div class="decision-icon">BUY</div>
 
-                    <div class="decision-icon">
-                        B
+                        <h3>Buy Property</h3>
+
+                        <p>
+                            Evaluate whether the property is worth buying.
+                        </p>
                     </div>
 
-                    <h3>
-                        BUY
-                    </h3>
 
-                    <p>
-                        Evaluate whether this property
-                        is worth buying.
-                    </p>
+                    <div
+                        id="sellCard"
+                        class="decision-card"
+                        data-decision="sell"
+                    >
+                        <div class="decision-icon">SELL</div>
 
-                </div>
+                        <h3>Sell Property</h3>
 
-
-                <!-- SELL -->
-                <div
-                    id="sellCard"
-                    class="decision-card"
-                    onclick="selectDecision('sell')">
-
-                    <div class="decision-icon">
-                        S
+                        <p>
+                            Evaluate whether the property is worth selling.
+                        </p>
                     </div>
 
-                    <h3>
-                        SELL
-                    </h3>
-
-                    <p>
-                        Evaluate whether this property
-                        may be suitable for selling.
-                    </p>
-
                 </div>
 
-            </div>
-
-        </section>
+            </section>
 
 
-        <!-- ==========================
-             PROPERTY FORM
-        =========================== -->
-        <section class="form-section">
+            <!-- PROPERTY FORM -->
+            <section class="form-section">
 
-            <div class="form-container">
-
-                <div class="section-heading">
-
-                    <p class="eyebrow">
-                        PROPERTY DETAILS
-                    </p>
-
-                    <h2>
-                        Tell us about the property
-                    </h2>
-
-                    <p>
-                        Enter the basic information below.
-                    </p>
-
-                </div>
-
+                <h2>Property details</h2>
 
                 <form id="propertyForm">
 
                     <div class="form-grid">
 
-                        <!-- PRICE -->
                         <div class="form-group">
-
                             <label for="price">
-                                Property Price
+                                Property Price (₹)
                             </label>
 
                             <input
                                 type="number"
                                 id="price"
-                                placeholder="Example: 5000000"
+                                placeholder="5000000"
+                                required
                                 min="1"
-                                required>
-
+                            >
                         </div>
 
 
-                        <!-- SIZE -->
                         <div class="form-group">
-
                             <label for="size">
-                                Property Size (sq.ft.)
+                                Property Size (sq ft)
                             </label>
 
                             <input
                                 type="number"
                                 id="size"
-                                placeholder="Example: 1500"
+                                placeholder="1500"
+                                required
                                 min="1"
-                                required>
-
+                            >
                         </div>
 
 
-                        <!-- AGE -->
                         <div class="form-group">
-
                             <label for="age">
                                 Property Age (years)
                             </label>
@@ -187,33 +186,29 @@
                             <input
                                 type="number"
                                 id="age"
-                                placeholder="Example: 5"
+                                placeholder="5"
+                                required
                                 min="0"
-                                required>
-
+                            >
                         </div>
 
 
-                        <!-- RENT -->
                         <div class="form-group">
-
                             <label for="rent">
-                                Expected Monthly Rent
+                                Monthly Rent (₹)
                             </label>
 
                             <input
                                 type="number"
                                 id="rent"
-                                placeholder="Example: 25000"
+                                placeholder="25000"
+                                required
                                 min="0"
-                                required>
-
+                            >
                         </div>
 
 
-                        <!-- LOCATION -->
                         <div class="form-group full-width">
-
                             <label for="location">
                                 Location
                             </label>
@@ -221,196 +216,162 @@
                             <input
                                 type="text"
                                 id="location"
-                                placeholder="Example: Chennai"
-                                required>
-
+                                placeholder="Chennai"
+                                required
+                                minlength="2"
+                            >
                         </div>
 
                     </div>
 
 
-                    <!-- ANALYZE BUTTON -->
-                    <button
-                        type="submit"
-                        class="analyze-button">
-
+                    <button type="submit" class="analyze-button">
                         Analyze Property
-
                     </button>
 
                 </form>
 
-            </div>
-
-        </section>
+            </section>
 
 
-        <!-- ==========================
-             LOADING
-        =========================== -->
-        <section
-            id="loadingSection"
-            class="loading-section hidden">
+            <!-- LOADING -->
+            <section id="loadingSection" class="loading-section hidden">
 
-            <div class="spinner"></div>
+                <div class="loader"></div>
 
-            <p>
-                Analyzing your property...
-            </p>
+                <p>
+                    Analyzing property...
+                </p>
 
-        </section>
+            </section>
 
 
-        <!-- ==========================
-             RESULT
-        =========================== -->
-        <section
-            id="resultSection"
-            class="result-section hidden">
+            <!-- RESULTS -->
+            <section id="resultSection" class="result-section hidden">
 
-            <div class="result-container">
+                <div class="result-header">
 
-                <div class="section-heading">
+                    <div>
+                        <p class="result-label">
+                            Property Analysis
+                        </p>
 
-                    <p class="eyebrow">
-                        PROPERTYWISE ANALYSIS
-                    </p>
+                        <h2 id="recommendation">
+                            BUY
+                        </h2>
+                    </div>
 
-                    <h2>
-                        Your property analysis
-                    </h2>
+                    <div class="score-box">
 
-                </div>
+                        <span id="score">
+                            0
+                        </span>
 
-
-                <!-- SCORE -->
-                <div class="result-score-card">
-
-                    <p>
-                        Property Score
-                    </p>
-
-                    <div
-                        id="score"
-                        class="score">
-
-                        0
+                        <small>
+                            / 100
+                        </small>
 
                     </div>
 
-                    <p>
-                        out of 100
-                    </p>
+                </div>
+
+
+                <div class="result-grid">
+
+                    <div class="result-card">
+
+                        <h3>Location</h3>
+
+                        <p id="resultLocation">
+                            -
+                        </p>
+
+                    </div>
+
+
+                    <div class="result-card">
+
+                        <h3>Rental Yield</h3>
+
+                        <p>
+                            <span id="rentalYield">
+                                0
+                            </span>%
+                        </p>
+
+                    </div>
+
+
+                    <div class="result-card">
+
+                        <h3>Decision</h3>
+
+                        <p id="resultDecision">
+                            -
+                        </p>
+
+                    </div>
 
                 </div>
 
 
-                <!-- RECOMMENDATION -->
-                <div class="recommendation-card">
+                <div class="analysis-details">
 
-                    <p>
-                        Recommendation
-                    </p>
+                    <div class="detail-section">
 
-                    <h3 id="recommendation">
-                        -
-                    </h3>
+                        <h3>Reasons</h3>
 
-                    <p>
-                        Location:
-                        <span id="analysisLocation">-</span>
-                    </p>
+                        <ul id="reasonsList"></ul>
 
-                    <p>
-                        Estimated Rental Yield:
-                        <span id="rentalYield">-</span>
-                    </p>
+                    </div>
+
+
+                    <div class="detail-section">
+
+                        <h3>Risks</h3>
+
+                        <ul id="risksList"></ul>
+
+                    </div>
 
                 </div>
 
 
-                <!-- REASONS -->
-                <div class="result-card">
+                <div class="explanation">
 
-                    <h3>
-                        Why?
-                    </h3>
+                    <h3>Explanation</h3>
 
-                    <ul id="reasonsList">
-                    </ul>
+                    <p id="explanationText"></p>
 
                 </div>
 
 
-                <!-- RISKS -->
-                <div class="result-card">
-
-                    <h3>
-                        Key Risks
-                    </h3>
-
-                    <ul id="risksList">
-                    </ul>
-
-                </div>
-
-
-                <!-- EXPLANATION -->
-                <div class="result-card">
-
-                    <h3>
-                        Explanation
-                    </h3>
-
-                    <p id="explanation">
-                    </p>
-
-                </div>
-
-
-                <!-- NEW ANALYSIS -->
                 <button
                     type="button"
-                    class="analyze-button"
-                    onclick="startNewAnalysis()">
-
+                    class="secondary-button"
+                    onclick="startNewAnalysis()"
+                >
                     Start New Analysis
-
                 </button>
 
+            </section>
 
-                <!-- DISCLAIMER -->
-                <p class="disclaimer">
-                    This is an initial decision-support analysis.
-                    It is not financial, legal, valuation or investment advice.
-                </p>
-
-            </div>
-
-        </section>
-
-    </main>
+        </main>
 
 
-    <!-- ==========================
-         FOOTER
-    =========================== -->
-    <footer>
+        <!-- FOOTER -->
+        <footer class="footer">
 
-        <p>
-            © 2026 PropertyWise
-        </p>
+            <p>
+                PropertyWise — AI-powered property decision support
+            </p>
 
-        <p>
-            AI-powered property decision support
-        </p>
+        </footer>
 
-    </footer>
+    </div>
 
 
-    <!-- JavaScript -->
     <script src="script.js"></script>
 
 </body>
-
 </html>

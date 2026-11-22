@@ -1,308 +1,473 @@
-// ==============================
-// PropertyWise Frontend
-// Connected to FastAPI
-// ==============================
-
-
-// ------------------------------
-// Backend API URL
-// ------------------------------
-
 const API_URL = "http://127.0.0.1:8000";
-
-
-// ------------------------------
-// Default decision
-// ------------------------------
 
 let selectedDecision = "buy";
 
 
 // ------------------------------
-// Select BUY or SELL
+// PAGE LOAD
+// ------------------------------
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const token = localStorage.getItem("propertywise_token");
+
+    if (token) {
+        showApp();
+    } else {
+        showLogin();
+    }
+
+
+    // Login form
+    const loginForm = document.getElementById("loginForm");
+
+    if (loginForm) {
+        loginForm.addEventListener("submit", login);
+    }
+
+
+    // Property form
+    const propertyForm = document.getElementById("propertyForm");
+
+    if (propertyForm) {
+        propertyForm.addEventListener("submit", analyzeProperty);
+    }
+
+
+    // Decision cards
+    const buyCard = document.getElementById("buyCard");
+    const sellCard = document.getElementById("sellCard");
+
+    if (buyCard) {
+        buyCard.addEventListener("click", () => {
+            selectDecision("buy");
+        });
+    }
+
+    if (sellCard) {
+        sellCard.addEventListener("click", () => {
+            selectDecision("sell");
+        });
+    }
+
+
+    // Logout
+    const logoutButton = document.getElementById("logoutButton");
+
+    if (logoutButton) {
+        logoutButton.addEventListener("click", logout);
+    }
+
+});
+
+
+// ------------------------------
+// LOGIN
+// ------------------------------
+
+async function login(event) {
+
+    event.preventDefault();
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const loginError = document.getElementById("loginError");
+
+    loginError.textContent = "";
+
+    try {
+
+        const response = await fetch(`${API_URL}/login`, {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                username: username,
+                password: password
+            })
+
+        });
+
+
+        if (!response.ok) {
+
+            const errorData = await response.json();
+
+            throw new Error(
+                errorData.detail || "Login failed"
+            );
+
+        }
+
+
+        const data = await response.json();
+
+
+        // Store JWT
+        localStorage.setItem(
+            "propertywise_token",
+            data.access_token
+        );
+
+
+        showApp();
+
+    }
+
+    catch (error) {
+
+        loginError.textContent =
+            error.message || "Unable to connect to PropertyWise API.";
+
+    }
+
+}
+
+
+// ------------------------------
+// SHOW LOGIN
+// ------------------------------
+
+function showLogin() {
+
+    const loginSection =
+        document.getElementById("loginSection");
+
+    const appSection =
+        document.getElementById("appSection");
+
+    loginSection.classList.remove("hidden");
+    appSection.classList.add("hidden");
+
+}
+
+
+// ------------------------------
+// SHOW APPLICATION
+// ------------------------------
+
+function showApp() {
+
+    const loginSection =
+        document.getElementById("loginSection");
+
+    const appSection =
+        document.getElementById("appSection");
+
+    loginSection.classList.add("hidden");
+    appSection.classList.remove("hidden");
+
+}
+
+
+// ------------------------------
+// LOGOUT
+// ------------------------------
+
+function logout() {
+
+    localStorage.removeItem("propertywise_token");
+
+    showLogin();
+
+}
+
+
+// ------------------------------
+// DECISION SELECTION
 // ------------------------------
 
 function selectDecision(decision) {
 
     selectedDecision = decision;
 
-    const buyCard = document.getElementById("buyCard");
-    const sellCard = document.getElementById("sellCard");
+    const buyCard =
+        document.getElementById("buyCard");
+
+    const sellCard =
+        document.getElementById("sellCard");
+
 
     if (decision === "buy") {
 
         buyCard.classList.add("active");
         sellCard.classList.remove("active");
 
-    } else {
+    }
+
+    else {
 
         sellCard.classList.add("active");
         buyCard.classList.remove("active");
 
     }
+
 }
 
 
 // ------------------------------
-// Display list items
+// PROPERTY ANALYSIS
 // ------------------------------
 
-function displayList(elementId, items) {
+async function analyzeProperty(event) {
 
-    const element = document.getElementById(elementId);
-
-    element.innerHTML = "";
-
-    items.forEach(function (item) {
-
-        const li = document.createElement("li");
-
-        li.textContent = item;
-
-        element.appendChild(li);
-
-    });
-}
+    event.preventDefault();
 
 
-// ------------------------------
-// Submit property analysis
-// ------------------------------
+    const price =
+        Number(document.getElementById("price").value);
 
-document
-    .getElementById("propertyForm")
-    .addEventListener("submit", async function (event) {
+    const size =
+        Number(document.getElementById("size").value);
 
-        event.preventDefault();
+    const age =
+        Number(document.getElementById("age").value);
 
+    const rent =
+        Number(document.getElementById("rent").value);
 
-        // Read property data
-
-        const propertyData = {
-
-            decision: selectedDecision,
-
-            price: Number(
-                document.getElementById("price").value
-            ),
-
-            size: Number(
-                document.getElementById("size").value
-            ),
-
-            age: Number(
-                document.getElementById("age").value
-            ),
-
-            rent: Number(
-                document.getElementById("rent").value
-            ),
-
-            location:
-                document.getElementById("location").value.trim()
-
-        };
+    const location =
+        document.getElementById("location").value;
 
 
-        // Basic validation
+    const loadingSection =
+        document.getElementById("loadingSection");
 
-        if (
-            propertyData.price <= 0 ||
-            propertyData.size <= 0 ||
-            propertyData.age < 0 ||
-            propertyData.rent < 0 ||
-            propertyData.location === ""
-        ) {
-
-            alert("Please enter valid property details.");
-
-            return;
-
-        }
+    const resultSection =
+        document.getElementById("resultSection");
 
 
-        // Show loading
-
-        document
-            .getElementById("loadingSection")
-            .classList.remove("hidden");
+    loadingSection.classList.remove("hidden");
+    resultSection.classList.add("hidden");
 
 
-        // Hide old result
-
-        document
-            .getElementById("resultSection")
-            .classList.add("hidden");
+    const token =
+        localStorage.getItem("propertywise_token");
 
 
-        try {
+    try {
 
-            // --------------------------
-            // Call FastAPI
-            // --------------------------
+        const response = await fetch(
+            `${API_URL}/analyze`,
+            {
 
-            const response = await fetch(
-                `${API_URL}/analyze`,
-                {
-                    method: "POST",
+                method: "POST",
 
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                headers: {
 
-                    body: JSON.stringify(propertyData)
-                }
-            );
+                    "Content-Type":
+                        "application/json",
 
+                    "Authorization":
+                        `Bearer ${token}`
 
-            // Check response
+                },
 
-            if (!response.ok) {
+                body: JSON.stringify({
 
-                throw new Error(
-                    `API request failed: ${response.status}`
-                );
+                    decision:
+                        selectedDecision,
+
+                    price:
+                        price,
+
+                    size:
+                        size,
+
+                    age:
+                        age,
+
+                    rent:
+                        rent,
+
+                    location:
+                        location
+
+                })
 
             }
+        );
 
 
-            // Convert response to JSON
+        if (response.status === 401) {
 
-            const result = await response.json();
-
-
-            // --------------------------
-            // Display API response
-            // --------------------------
-
-            document.getElementById("score").textContent =
-                result.score;
-
-
-            document.getElementById("recommendation").textContent =
-                result.recommendation;
-
-
-            document.getElementById("analysisLocation").textContent =
-                result.location;
-
-
-            document.getElementById("rentalYield").textContent =
-                `${result.rental_yield}%`;
-
-
-            displayList(
-                "reasonsList",
-                result.reasons
+            localStorage.removeItem(
+                "propertywise_token"
             );
 
+            showLogin();
 
-            displayList(
-                "risksList",
-                result.risks
+            throw new Error(
+                "Your session has expired. Please sign in again."
             );
-
-
-            document.getElementById("explanation").textContent =
-                result.explanation;
-
-
-            // Hide loading
-
-            document
-                .getElementById("loadingSection")
-                .classList.add("hidden");
-
-
-            // Show result
-
-            document
-                .getElementById("resultSection")
-                .classList.remove("hidden");
-
-
-            // Scroll to result
-
-            document
-                .getElementById("resultSection")
-                .scrollIntoView({
-                    behavior: "smooth"
-                });
 
         }
 
-        catch (error) {
 
-            console.error(error);
+        if (!response.ok) {
 
+            const errorData =
+                await response.json();
 
-            alert(
-                "Unable to connect to the PropertyWise API. " +
-                "Make sure the FastAPI server is running."
+            throw new Error(
+                errorData.detail ||
+                "Property analysis failed."
             );
 
-
-            document
-                .getElementById("loadingSection")
-                .classList.add("hidden");
-
         }
+
+
+        const data =
+            await response.json();
+
+
+        displayResults(data);
+
+    }
+
+    catch (error) {
+
+        alert(
+            error.message ||
+            "Unable to analyze the property."
+        );
+
+    }
+
+    finally {
+
+        loadingSection.classList.add("hidden");
+
+    }
+
+}
+
+
+// ------------------------------
+// DISPLAY RESULTS
+// ------------------------------
+
+function displayResults(data) {
+
+    const resultSection =
+        document.getElementById("resultSection");
+
+
+    document.getElementById(
+        "score"
+    ).textContent = data.score;
+
+
+    document.getElementById(
+        "recommendation"
+    ).textContent = data.recommendation;
+
+
+    document.getElementById(
+        "resultLocation"
+    ).textContent = data.location;
+
+
+    document.getElementById(
+        "rentalYield"
+    ).textContent = data.rental_yield;
+
+
+    document.getElementById(
+        "resultDecision"
+    ).textContent =
+        selectedDecision.toUpperCase();
+
+
+    // Reasons
+    const reasonsList =
+        document.getElementById("reasonsList");
+
+    reasonsList.innerHTML = "";
+
+    data.reasons.forEach(reason => {
+
+        const li =
+            document.createElement("li");
+
+        li.textContent = reason;
+
+        reasonsList.appendChild(li);
 
     });
 
 
+    // Risks
+    const risksList =
+        document.getElementById("risksList");
+
+    risksList.innerHTML = "";
+
+    data.risks.forEach(risk => {
+
+        const li =
+            document.createElement("li");
+
+        li.textContent = risk;
+
+        risksList.appendChild(li);
+
+    });
+
+
+    // Explanation
+    document.getElementById(
+        "explanationText"
+    ).textContent = data.explanation;
+
+
+    resultSection.classList.remove("hidden");
+
+
+    resultSection.scrollIntoView({
+        behavior: "smooth"
+    });
+
+}
+
+
 // ------------------------------
-// Start new analysis
+// NEW ANALYSIS
 // ------------------------------
 
 function startNewAnalysis() {
 
-    document
-        .getElementById("propertyForm")
-        .reset();
+    document.getElementById(
+        "propertyForm"
+    ).reset();
+
+
+    document.getElementById(
+        "resultSection"
+    ).classList.add("hidden");
+
+
+    document.getElementById(
+        "buyCard"
+    ).classList.add("active");
+
+
+    document.getElementById(
+        "sellCard"
+    ).classList.remove("active");
 
 
     selectedDecision = "buy";
 
 
-    document
-        .getElementById("buyCard")
-        .classList.add("active");
-
-
-    document
-        .getElementById("sellCard")
-        .classList.remove("active");
-
-
-    document
-        .getElementById("resultSection")
-        .classList.add("hidden");
-
-
-    document
-        .getElementById("loadingSection")
-        .classList.add("hidden");
-
-
-    document
-        .getElementById("propertyForm")
-        .scrollIntoView({
-            behavior: "smooth"
-        });
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
 
 }
-
-
-// ------------------------------
-// Set BUY as default
-// ------------------------------
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        selectDecision("buy");
-
-    }
-);
