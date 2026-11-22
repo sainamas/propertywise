@@ -1,21 +1,18 @@
-import os
-from datetime import datetime, timedelta, timezone
-
-from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from pydantic import BaseModel, Field, field_validator
 
-load_dotenv()
+from workflow import property_workflow
+
 
 app = FastAPI(
     title="PropertyWise API",
     description="AI-powered property decision-support API",
     version="1.0.0",
 )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,79 +22,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SECRET_KEY = os.getenv(
-    "JWT_SECRET",
-    "development-secret-key",
-)
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-)
+JWT_SECRET = "propertywise-super-secret-key-2026"
+ALGORITHM = "HS256"
+
 
 oauth2_scheme = OAuth2PasswordBearer(
-    tokenUrl="/login",
+    tokenUrl="login"
 )
-
-
-# -------------------------
-# Request / Response Models
-# -------------------------
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str
 
 
 class PropertyRequest(BaseModel):
-    decision: str = Field(
-        ...,
-        description="buy or sell",
-    )
-
-    price: float = Field(
-        ...,
-        gt=0,
-        description="Property price must be greater than 0",
-    )
-
-    size: float = Field(
-        ...,
-        gt=0,
-        description="Property size must be greater than 0",
-    )
-
-    age: int = Field(
-        ...,
-        ge=0,
-        description="Property age cannot be negative",
-    )
-
-    rent: float = Field(
-        ...,
-        ge=0,
-        description="Monthly rent cannot be negative",
-    )
-
-    location: str = Field(
-        ...,
-        min_length=2,
-        description="Location is required",
-    )
+    decision: str
+    price: float = Field(gt=0)
+    size: float = Field(gt=0)
+    age: int = Field(ge=0)
+    rent: float = Field(ge=0)
+    location: str = Field(min_length=2)
 
     @field_validator("decision")
     @classmethod
     def validate_decision(cls, value):
-        value = value.lower().strip()
+        value = value.lower()
 
-        if value not in {"buy", "sell"}:
+        if value not in ["buy", "sell"]:
             raise ValueError(
                 "Decision must be either 'buy' or 'sell'"
             )
@@ -127,85 +75,48 @@ class PropertyResponse(BaseModel):
     explanation: str
 
 
-# -------------------------
-# Demo User
-# -------------------------
-
-DEMO_USER = {
-    "username": "demo",
-    "password_hash": pwd_context.hash(
-        "propertywise123"
-    ),
-}
-
-
-# -------------------------
-# Authentication
-# -------------------------
-
 def create_access_token(username: str):
 
-    expire = (
-        datetime.now(timezone.utc)
-        + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-        )
-    )
-
     payload = {
-        "sub": username,
-        "exp": expire,
+        "sub": username
     }
 
     return jwt.encode(
         payload,
-        SECRET_KEY,
+        JWT_SECRET,
         algorithm=ALGORITHM,
     )
 
 
-def verify_token(token: str):
-
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid or expired authentication token",
-        headers={
-            "WWW-Authenticate": "Bearer"
-        },
-    )
+def verify_token(
+    token: str = Depends(oauth2_scheme),
+):
 
     try:
-
         payload = jwt.decode(
             token,
-            SECRET_KEY,
+            JWT_SECRET,
             algorithms=[ALGORITHM],
         )
 
         username = payload.get("sub")
 
         if username is None:
-            raise credentials_exception
+            raise ValueError()
 
         return username
 
-    except JWTError:
-        raise credentials_exception
+    except (JWTError, ValueError):
+        from fastapi import HTTPException
 
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired token",
+        )
 
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-):
-
-    return verify_token(token)
-
-
-# -------------------------
-# Routes
-# -------------------------
 
 @app.get("/")
-def home():
+def root():
 
     return {
         "message": "PropertyWise API is running"
@@ -213,48 +124,38 @@ def home():
 
 
 @app.get("/health")
-def health_check():
+def health():
 
     return {
-        "status": "healthy",
-        "service": "propertywise-api",
+        "status": "healthy"
     }
 
 
-@app.post(
-    "/login",
-    response_model=TokenResponse,
-)
+@app.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
 ):
 
     if (
-        form_data.username
-        != DEMO_USER["username"]
+        form_data.username == "demo"
+        and form_data.password == "propertywise123"
     ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid username or password",
+
+        token = create_access_token(
+            form_data.username
         )
 
-    if not pwd_context.verify(
-        form_data.password,
-        DEMO_USER["password_hash"],
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid username or password",
-        )
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+        }
 
-    token = create_access_token(
-        form_data.username
+    from fastapi import HTTPException
+
+    raise HTTPException(
+        status_code=401,
+        detail="Invalid username or password",
     )
-
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-    }
 
 
 @app.post(
@@ -262,139 +163,29 @@ def login(
     response_model=PropertyResponse,
 )
 def analyze_property(
-    property: PropertyRequest,
-    current_user: str = Depends(
-        get_current_user
-    ),
+    property_data: PropertyRequest,
+    username: str = Depends(verify_token),
 ):
 
-    # -------------------------
-    # Calculate rental yield
-    # -------------------------
+    workflow_input = {
+        "decision": property_data.decision,
+        "price": property_data.price,
+        "size": property_data.size,
+        "age": property_data.age,
+        "rent": property_data.rent,
+        "location": property_data.location,
+    }
 
-    rental_yield = round(
-        (
-            property.rent * 12
-            / property.price
-        ) * 100,
-        2,
+    result = property_workflow.invoke(
+        workflow_input
     )
 
-    # -------------------------
-    # Basic scoring
-    # -------------------------
-
-    score = 50
-
-    if property.decision == "buy":
-
-        if rental_yield >= 5:
-            score += 20
-
-        if property.age <= 10:
-            score += 10
-
-        if property.size >= 1000:
-            score += 10
-
-        if property.price <= 10000000:
-            score += 5
-
-    elif property.decision == "sell":
-
-        if property.age >= 10:
-            score += 15
-
-        if property.price >= 5000000:
-            score += 15
-
-        if rental_yield < 4:
-            score += 10
-
-    score = min(score, 100)
-
-    # -------------------------
-    # Recommendation
-    # -------------------------
-
-    if property.decision == "buy":
-
-        recommendation = (
-            "BUY"
-            if score >= 60
-            else "REVIEW"
-        )
-
-    else:
-
-        recommendation = (
-            "SELL"
-            if score >= 60
-            else "REVIEW"
-        )
-
-    # -------------------------
-    # Reasons and risks
-    # -------------------------
-
-    reasons = []
-    risks = []
-
-    if rental_yield >= 5:
-
-        reasons.append(
-            "Rental yield is relatively strong."
-        )
-
-    else:
-
-        risks.append(
-            "Rental yield is relatively low."
-        )
-
-    if property.age <= 10:
-
-        reasons.append(
-            "The property is relatively new."
-        )
-
-    else:
-
-        risks.append(
-            "The property is relatively old."
-        )
-
-    if property.size >= 1000:
-
-        reasons.append(
-            "The property provides reasonable space."
-        )
-
-    if property.price > 10000000:
-
-        risks.append(
-            "The property has a relatively high purchase price."
-        )
-
-    # -------------------------
-    # Explanation
-    # -------------------------
-
-    explanation = (
-        f"For the {property.location} property, "
-        f"the current decision score is "
-        f"{score}/100. The recommendation is "
-        f"{recommendation}. This initial analysis "
-        f"is based on the property price, size, "
-        f"age, rental income, and selected decision."
-    )
-
-    return PropertyResponse(
-        score=score,
-        recommendation=recommendation,
-        location=property.location,
-        rental_yield=rental_yield,
-        reasons=reasons,
-        risks=risks,
-        explanation=explanation,
-    )
+    return {
+        "score": result["score"],
+        "recommendation": result["recommendation"],
+        "location": property_data.location,
+        "rental_yield": result["rental_yield"],
+        "reasons": result["reasons"],
+        "risks": result["risks"],
+        "explanation": result["explanation"],
+    }
