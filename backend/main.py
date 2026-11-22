@@ -1,23 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-
-# ==============================
-# Create FastAPI application
-# ==============================
 
 app = FastAPI(
     title="PropertyWise API",
-    description="API for property BUY/SELL decision support",
-    version="1.0.0"
+    description="AI-powered property decision-support API",
+    version="1.0.0",
 )
 
 
-# ==============================
-# Allow frontend to call backend
-# ==============================
-
+# Allow the frontend to communicate with the API during development.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,183 +20,110 @@ app.add_middleware(
 )
 
 
-# ==============================
-# Request model
-# ==============================
-
 class PropertyRequest(BaseModel):
-    decision: str
-    price: float
-    size: float
-    age: float
-    rent: float
+    decision: str = Field(..., description="buy or sell")
+    price: float = Field(..., gt=0)
+    size: float = Field(..., gt=0)
+    age: int = Field(..., ge=0)
+    rent: float = Field(..., ge=0)
+    location: str = Field(..., min_length=2)
+
+
+class PropertyResponse(BaseModel):
+    score: float
+    recommendation: str
     location: str
+    rental_yield: float
+    reasons: list[str]
+    risks: list[str]
+    explanation: str
 
-
-# ==============================
-# Health check
-# ==============================
 
 @app.get("/")
 def home():
+    return {"message": "PropertyWise API is running"}
+
+
+@app.get("/health")
+def health_check():
     return {
-        "message": "PropertyWise API is running"
+        "status": "healthy",
+        "service": "propertywise-api",
     }
 
 
-# ==============================
-# Property analysis
-# ==============================
-
-@app.post("/analyze")
+@app.post("/analyze", response_model=PropertyResponse)
 def analyze_property(property: PropertyRequest):
+
+    rental_yield = round(
+        (property.rent * 12 / property.price) * 100,
+        2
+    )
 
     score = 50
 
-    # Price factor
-    if property.price <= 5_000_000:
-        score += 10
-    elif property.price <= 10_000_000:
-        score += 5
-    else:
-        score -= 5
-
-    # Size factor
-    if property.size >= 1500:
-        score += 10
-    elif property.size >= 1000:
-        score += 5
-    else:
-        score -= 5
-
-    # Age factor
-    if property.age <= 5:
-        score += 10
-    elif property.age <= 15:
-        score += 5
-    else:
-        score -= 5
-
-    # Rental yield
-    annual_rent = property.rent * 12
-    rental_yield = (annual_rent / property.price) * 100
-
-    if rental_yield >= 5:
-        score += 15
-    elif rental_yield >= 3:
-        score += 5
-    else:
-        score -= 5
-
-    # Keep score between 0 and 100
-    score = max(0, min(100, score))
-
-    # Recommendation
     if property.decision.lower() == "buy":
+        if rental_yield >= 5:
+            score += 20
 
-        if score >= 70:
-            recommendation = "BUY"
-        elif score >= 50:
-            recommendation = "CONSIDER BUYING"
-        else:
-            recommendation = "AVOID BUYING"
+        if property.age <= 10:
+            score += 10
 
+        if property.size >= 1000:
+            score += 10
+
+        if property.price <= 10000000:
+            score += 5
+
+    elif property.decision.lower() == "sell":
+        if property.age >= 10:
+            score += 15
+
+        if property.price >= 5000000:
+            score += 15
+
+        if rental_yield < 4:
+            score += 10
+
+    score = min(score, 100)
+
+    if property.decision.lower() == "buy":
+        recommendation = "BUY" if score >= 60 else "REVIEW"
     else:
+        recommendation = "SELL" if score >= 60 else "REVIEW"
 
-        if score >= 70:
-            recommendation = "SELL"
-        elif score >= 50:
-            recommendation = "CONSIDER SELLING"
-        else:
-            recommendation = "HOLD"
-
-    # Reasons
     reasons = []
-
-    if property.price <= 10_000_000:
-        reasons.append(
-            "The property price is within a moderate range."
-        )
-    else:
-        reasons.append(
-            "The property has a relatively high purchase price."
-        )
-
-    if property.size >= 1500:
-        reasons.append(
-            "The property offers good usable space."
-        )
-    else:
-        reasons.append(
-            "The property size is relatively compact."
-        )
-
-    if property.age <= 5:
-        reasons.append(
-            "The property is relatively new."
-        )
-    elif property.age <= 15:
-        reasons.append(
-            "The property has moderate age."
-        )
-    else:
-        reasons.append(
-            "The property is relatively old and may require additional maintenance."
-        )
-
-    if rental_yield >= 5:
-        reasons.append(
-            "The estimated rental yield is attractive."
-        )
-    elif rental_yield >= 3:
-        reasons.append(
-            "The estimated rental yield is moderate."
-        )
-    else:
-        reasons.append(
-            "The estimated rental yield is relatively low."
-        )
-
-    # Risks
     risks = []
 
-    if property.price > 10_000_000:
-        risks.append(
-            "Higher property price may increase financial exposure."
-        )
+    if rental_yield >= 5:
+        reasons.append("Rental yield is relatively strong.")
+    else:
+        risks.append("Rental yield is relatively low.")
 
-    if property.age > 15:
-        risks.append(
-            "Older property may require higher maintenance."
-        )
+    if property.age <= 10:
+        reasons.append("The property is relatively new.")
+    else:
+        risks.append("The property is relatively old.")
 
-    if rental_yield < 3:
-        risks.append(
-            "Low rental yield may reduce income potential."
-        )
+    if property.size >= 1000:
+        reasons.append("The property provides reasonable space.")
 
-    if not risks:
-        risks.append(
-            "No major risk identified from the basic inputs."
-        )
+    if property.price > 10000000:
+        risks.append("The property has a relatively high purchase price.")
 
-    # Explanation
     explanation = (
-        f"PropertyWise gives this property a score of "
-        f"{score}/100 for the selected {property.decision.upper()} decision. "
-        f"The estimated rental yield is {rental_yield:.2f}%. "
-        "This is an initial decision-support result and should be "
-        "combined with market, legal, financial and property-specific "
-        "analysis before making a final decision."
+        f"For the {property.location} property, the current "
+        f"decision score is {score}/100. The recommendation is "
+        f"{recommendation}. This initial analysis is based on the "
+        f"property price, size, age, rental income, and selected decision."
     )
 
-    # Return JSON response
-    return {
-        "score": score,
-        "recommendation": recommendation,
-        "location": property.location,
-        "rental_yield": round(rental_yield, 2),
-        "reasons": reasons,
-        "risks": risks,
-        "explanation": explanation
-    }
+    return PropertyResponse(
+        score=score,
+        recommendation=recommendation,
+        location=property.location,
+        rental_yield=rental_yield,
+        reasons=reasons,
+        risks=risks,
+        explanation=explanation,
+    )
