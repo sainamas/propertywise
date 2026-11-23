@@ -9,3 +9,4 @@ langchain-core
 scikit-learn
 shap
 supabase
+sentence-transformers
