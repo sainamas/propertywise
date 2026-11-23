@@ -4,7 +4,10 @@ from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, END
 
 from financial_analysis import calculate_financial_metrics
-from ml_model import predict_property_score
+from ml_model import (
+    predict_property_score,
+    explain_property_prediction,
+)
 
 
 class PropertyState(TypedDict):
@@ -18,6 +21,7 @@ class PropertyState(TypedDict):
     recommendation: str
     rental_yield: float
     ml_score: float
+    shap_explanations: list
     reasons: list[str]
     risks: list[str]
     explanation: str
@@ -57,6 +61,25 @@ def property_ml_score(
     )
 
 
+@tool
+def property_ml_explanation(
+    price: float,
+    size: float,
+    age: float,
+    monthly_rent: float,
+    location: str,
+) -> list:
+    """Explain the ML prediction using SHAP."""
+
+    return explain_property_prediction(
+        price=price,
+        size=size,
+        age=age,
+        rent=monthly_rent,
+        location=location,
+    )
+
+
 def decision_router(state: PropertyState):
     return state
 
@@ -69,6 +92,7 @@ def route_decision(state: PropertyState) -> str:
 
 
 def buy_agent(state: PropertyState):
+
     financials = property_financial_analysis.invoke(
         {
             "price": state["price"],
@@ -78,6 +102,16 @@ def buy_agent(state: PropertyState):
     )
 
     ml_score = property_ml_score.invoke(
+        {
+            "price": state["price"],
+            "size": state["size"],
+            "age": state["age"],
+            "monthly_rent": state["rent"],
+            "location": state["location"],
+        }
+    )
+
+    shap_explanations = property_ml_explanation.invoke(
         {
             "price": state["price"],
             "size": state["size"],
@@ -100,9 +134,13 @@ def buy_agent(state: PropertyState):
         risks.append("Rental yield is relatively low.")
 
     if ml_score >= 70:
-        reasons.append("The machine learning model gives the property a strong score.")
+        reasons.append(
+            "The machine learning model gives the property a strong score."
+        )
     else:
-        risks.append("The machine learning model gives the property a lower score.")
+        risks.append(
+            "The machine learning model gives the property a lower score."
+        )
 
     if state["age"] <= 10:
         reasons.append("The property is relatively new.")
@@ -111,11 +149,15 @@ def buy_agent(state: PropertyState):
 
     recommendation = "BUY" if score >= 60 else "REVIEW"
 
+    top_factor = shap_explanations[0]
+
     explanation = (
         f"For the {state['location']} property, the combined decision score is "
         f"{score}/100. The recommendation is {recommendation}. "
         f"The machine learning model produced a score of {ml_score}. "
-        f"The rental yield is {rental_yield}%."
+        f"The rental yield is {rental_yield}%. "
+        f"The strongest model factor was {top_factor['feature']} "
+        f"with a contribution of {top_factor['contribution']}."
     )
 
     return {
@@ -123,6 +165,7 @@ def buy_agent(state: PropertyState):
         "recommendation": recommendation,
         "rental_yield": rental_yield,
         "ml_score": ml_score,
+        "shap_explanations": shap_explanations,
         "reasons": reasons,
         "risks": risks,
         "explanation": explanation,
@@ -130,6 +173,7 @@ def buy_agent(state: PropertyState):
 
 
 def sell_agent(state: PropertyState):
+
     financials = property_financial_analysis.invoke(
         {
             "price": state["price"],
@@ -148,9 +192,21 @@ def sell_agent(state: PropertyState):
         }
     )
 
+    shap_explanations = property_ml_explanation.invoke(
+        {
+            "price": state["price"],
+            "size": state["size"],
+            "age": state["age"],
+            "monthly_rent": state["rent"],
+            "location": state["location"],
+        }
+    )
+
     rental_yield = financials["rental_yield"]
 
-    score = round((ml_score + (100 - rental_yield * 10)) / 2)
+    score = round(
+        (ml_score + (100 - rental_yield * 10)) / 2
+    )
 
     reasons = []
     risks = []
@@ -168,17 +224,25 @@ def sell_agent(state: PropertyState):
         risks.append("Rental yield is relatively strong.")
 
     if ml_score < 70:
-        reasons.append("The machine learning model gives the property a lower score.")
+        reasons.append(
+            "The machine learning model gives the property a lower score."
+        )
     else:
-        risks.append("The machine learning model gives the property a stronger score.")
+        risks.append(
+            "The machine learning model gives the property a stronger score."
+        )
 
     recommendation = "SELL" if score >= 60 else "REVIEW"
+
+    top_factor = shap_explanations[0]
 
     explanation = (
         f"For the {state['location']} property, the combined decision score is "
         f"{score}/100. The recommendation is {recommendation}. "
         f"The machine learning model produced a score of {ml_score}. "
-        f"The rental yield is {rental_yield}%."
+        f"The rental yield is {rental_yield}%. "
+        f"The strongest model factor was {top_factor['feature']} "
+        f"with a contribution of {top_factor['contribution']}."
     )
 
     return {
@@ -186,6 +250,7 @@ def sell_agent(state: PropertyState):
         "recommendation": recommendation,
         "rental_yield": rental_yield,
         "ml_score": ml_score,
+        "shap_explanations": shap_explanations,
         "reasons": reasons,
         "risks": risks,
         "explanation": explanation,

@@ -6,3 +6,5 @@ passlib[bcrypt]
 python-dotenv
 langgraph
 langchain-core
+scikit-learn
+shap
