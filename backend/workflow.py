@@ -4,6 +4,7 @@ from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, END
 
 from financial_analysis import calculate_financial_metrics
+from ml_model import predict_property_score
 
 
 class PropertyState(TypedDict):
@@ -16,6 +17,7 @@ class PropertyState(TypedDict):
     score: int
     recommendation: str
     rental_yield: float
+    ml_score: float
     reasons: list[str]
     risks: list[str]
     explanation: str
@@ -33,6 +35,25 @@ def property_financial_analysis(
         price=price,
         monthly_rent=monthly_rent,
         age=age,
+    )
+
+
+@tool
+def property_ml_score(
+    price: float,
+    size: float,
+    age: float,
+    monthly_rent: float,
+    location: str,
+) -> float:
+    """Predict a property decision score using the trained ML model."""
+
+    return predict_property_score(
+        price=price,
+        size=size,
+        age=age,
+        rent=monthly_rent,
+        location=location,
     )
 
 
@@ -56,47 +77,52 @@ def buy_agent(state: PropertyState):
         }
     )
 
+    ml_score = property_ml_score.invoke(
+        {
+            "price": state["price"],
+            "size": state["size"],
+            "age": state["age"],
+            "monthly_rent": state["rent"],
+            "location": state["location"],
+        }
+    )
+
     rental_yield = financials["rental_yield"]
 
-    score = 50
+    score = round((ml_score + rental_yield * 5) / 2)
+
     reasons = []
     risks = []
 
     if rental_yield >= 5:
-        score += 20
         reasons.append("Rental yield is relatively strong.")
     else:
         risks.append("Rental yield is relatively low.")
 
+    if ml_score >= 70:
+        reasons.append("The machine learning model gives the property a strong score.")
+    else:
+        risks.append("The machine learning model gives the property a lower score.")
+
     if state["age"] <= 10:
-        score += 10
         reasons.append("The property is relatively new.")
     else:
         risks.append("The property is relatively old.")
 
-    if state["size"] >= 1000:
-        score += 10
-        reasons.append("The property provides reasonable space.")
-
-    if state["price"] <= 10_000_000:
-        score += 5
-    else:
-        risks.append("The property has a relatively high price.")
-
     recommendation = "BUY" if score >= 60 else "REVIEW"
 
     explanation = (
-        f"For the {state['location']} property, the current decision score is "
+        f"For the {state['location']} property, the combined decision score is "
         f"{score}/100. The recommendation is {recommendation}. "
-        f"The property has a rental yield of {rental_yield}%. "
-        f"The estimated total annual return is "
-        f"{financials['total_return_percentage']}%."
+        f"The machine learning model produced a score of {ml_score}. "
+        f"The rental yield is {rental_yield}%."
     )
 
     return {
         "score": score,
         "recommendation": recommendation,
         "rental_yield": rental_yield,
+        "ml_score": ml_score,
         "reasons": reasons,
         "risks": risks,
         "explanation": explanation,
@@ -112,46 +138,54 @@ def sell_agent(state: PropertyState):
         }
     )
 
+    ml_score = property_ml_score.invoke(
+        {
+            "price": state["price"],
+            "size": state["size"],
+            "age": state["age"],
+            "monthly_rent": state["rent"],
+            "location": state["location"],
+        }
+    )
+
     rental_yield = financials["rental_yield"]
 
-    score = 50
+    score = round((ml_score + (100 - rental_yield * 10)) / 2)
+
     reasons = []
     risks = []
 
     if state["age"] >= 10:
-        score += 15
         reasons.append("The property is relatively old.")
     else:
         risks.append(
             "The property is relatively new, which may reduce the urgency to sell."
         )
 
-    if state["price"] >= 5_000_000:
-        score += 15
-        reasons.append("The property has significant property value.")
-    else:
-        risks.append("The property value is relatively low.")
-
     if rental_yield < 4:
-        score += 10
         reasons.append("Rental yield is relatively low.")
     else:
         risks.append("Rental yield is relatively strong.")
 
+    if ml_score < 70:
+        reasons.append("The machine learning model gives the property a lower score.")
+    else:
+        risks.append("The machine learning model gives the property a stronger score.")
+
     recommendation = "SELL" if score >= 60 else "REVIEW"
 
     explanation = (
-        f"For the {state['location']} property, the current decision score is "
+        f"For the {state['location']} property, the combined decision score is "
         f"{score}/100. The recommendation is {recommendation}. "
-        f"The property has a rental yield of {rental_yield}%. "
-        f"The estimated total annual return is "
-        f"{financials['total_return_percentage']}%."
+        f"The machine learning model produced a score of {ml_score}. "
+        f"The rental yield is {rental_yield}%."
     )
 
     return {
         "score": score,
         "recommendation": recommendation,
         "rental_yield": rental_yield,
+        "ml_score": ml_score,
         "reasons": reasons,
         "risks": risks,
         "explanation": explanation,
