@@ -3,6 +3,8 @@ from typing import TypedDict
 from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, END
 
+from financial_analysis import calculate_financial_metrics
+
 
 class PropertyState(TypedDict):
     decision: str
@@ -11,7 +13,6 @@ class PropertyState(TypedDict):
     age: float
     rent: float
     location: str
-
     score: int
     recommendation: str
     rental_yield: float
@@ -21,27 +22,25 @@ class PropertyState(TypedDict):
 
 
 @tool
-def calculate_rental_yield(price: float, monthly_rent: float) -> float:
-    """Calculate annual rental yield as a percentage."""
+def property_financial_analysis(
+    price: float,
+    monthly_rent: float,
+    age: float,
+) -> dict:
+    """Calculate basic financial metrics for a property."""
 
-    if price <= 0:
-        return 0.0
-
-    annual_rent = monthly_rent * 12
-    rental_yield = (annual_rent / price) * 100
-
-    return round(rental_yield, 2)
+    return calculate_financial_metrics(
+        price=price,
+        monthly_rent=monthly_rent,
+        age=age,
+    )
 
 
 def decision_router(state: PropertyState):
-    """Pass the property data to the correct decision agent."""
-
     return state
 
 
 def route_decision(state: PropertyState) -> str:
-    """Route the request to either the BUY or SELL agent."""
-
     if state["decision"] == "buy":
         return "buy_agent"
 
@@ -49,14 +48,15 @@ def route_decision(state: PropertyState) -> str:
 
 
 def buy_agent(state: PropertyState):
-    """Analyze the property from a buying perspective."""
-
-    rental_yield = calculate_rental_yield.invoke(
+    financials = property_financial_analysis.invoke(
         {
             "price": state["price"],
             "monthly_rent": state["rent"],
+            "age": state["age"],
         }
     )
+
+    rental_yield = financials["rental_yield"]
 
     score = 50
     reasons = []
@@ -88,8 +88,9 @@ def buy_agent(state: PropertyState):
     explanation = (
         f"For the {state['location']} property, the current decision score is "
         f"{score}/100. The recommendation is {recommendation}. "
-        f"This analysis considers property price, size, age, rental income, "
-        f"and rental yield."
+        f"The property has a rental yield of {rental_yield}%. "
+        f"The estimated total annual return is "
+        f"{financials['total_return_percentage']}%."
     )
 
     return {
@@ -103,14 +104,15 @@ def buy_agent(state: PropertyState):
 
 
 def sell_agent(state: PropertyState):
-    """Analyze the property from a selling perspective."""
-
-    rental_yield = calculate_rental_yield.invoke(
+    financials = property_financial_analysis.invoke(
         {
             "price": state["price"],
             "monthly_rent": state["rent"],
+            "age": state["age"],
         }
     )
+
+    rental_yield = financials["rental_yield"]
 
     score = 50
     reasons = []
@@ -141,8 +143,9 @@ def sell_agent(state: PropertyState):
     explanation = (
         f"For the {state['location']} property, the current decision score is "
         f"{score}/100. The recommendation is {recommendation}. "
-        f"This analysis considers property price, size, age, rental income, "
-        f"and rental yield."
+        f"The property has a rental yield of {rental_yield}%. "
+        f"The estimated total annual return is "
+        f"{financials['total_return_percentage']}%."
     )
 
     return {
@@ -155,21 +158,14 @@ def sell_agent(state: PropertyState):
     }
 
 
-# ---------------------------------------------------------
-# LangGraph workflow
-# ---------------------------------------------------------
-
 workflow = StateGraph(PropertyState)
 
-# Add workflow nodes
 workflow.add_node("decision_router", decision_router)
 workflow.add_node("buy_agent", buy_agent)
 workflow.add_node("sell_agent", sell_agent)
 
-# Start → Decision Router
 workflow.add_edge(START, "decision_router")
 
-# Decision Router → BUY or SELL
 workflow.add_conditional_edges(
     "decision_router",
     route_decision,
@@ -179,9 +175,7 @@ workflow.add_conditional_edges(
     },
 )
 
-# BUY / SELL → End
 workflow.add_edge("buy_agent", END)
 workflow.add_edge("sell_agent", END)
 
-# Compile the workflow
 property_workflow = workflow.compile()
