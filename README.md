@@ -14,9 +14,10 @@ It combines deterministic financial analysis, machine learning, SHAP explainabil
 
 ## Architecture
 
-![PropertyWise Implemented Architecture](architecture/propertywise-architecture.png)
+![PropertyWise Implemented Architecture](propertywise-architecture.png)
 
 ### Production workflow
+
 
 ```text
 User
