@@ -9,6 +9,7 @@ from ml_model import (
     explain_property_prediction,
 )
 from rag_retrieval import retrieve_documents
+from llm import generate_property_explanation
 
 
 class PropertyState(TypedDict):
@@ -169,15 +170,14 @@ def buy_agent(state: PropertyState):
 
     recommendation = "BUY" if score >= 60 else "REVIEW"
 
-    top_factor = shap_explanations[0]
-
-    explanation = (
-        f"For the {state['location']} property, the combined decision score is "
-        f"{score}/100. The recommendation is {recommendation}. "
-        f"The machine learning model produced a score of {ml_score}. "
-        f"The rental yield is {rental_yield}%. "
-        f"The strongest model factor was {top_factor['feature']} "
-        f"with a contribution of {top_factor['contribution']}."
+    explanation = generate_property_explanation(
+        decision="buy",
+        location=state["location"],
+        score=score,
+        ml_score=ml_score,
+        rental_yield=rental_yield,
+        shap_explanations=shap_explanations,
+        rag_context=rag_context,
     )
 
     return {
@@ -264,15 +264,14 @@ def sell_agent(state: PropertyState):
 
     recommendation = "SELL" if score >= 60 else "REVIEW"
 
-    top_factor = shap_explanations[0]
-
-    explanation = (
-        f"For the {state['location']} property, the combined decision score is "
-        f"{score}/100. The recommendation is {recommendation}. "
-        f"The machine learning model produced a score of {ml_score}. "
-        f"The rental yield is {rental_yield}%. "
-        f"The strongest model factor was {top_factor['feature']} "
-        f"with a contribution of {top_factor['contribution']}."
+    explanation = generate_property_explanation(
+        decision="sell",
+        location=state["location"],
+        score=score,
+        ml_score=ml_score,
+        rental_yield=rental_yield,
+        shap_explanations=shap_explanations,
+        rag_context=rag_context,
     )
 
     return {

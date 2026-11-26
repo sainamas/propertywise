@@ -10,3 +10,4 @@ scikit-learn
 shap
 supabase
 sentence-transformers
+groq
