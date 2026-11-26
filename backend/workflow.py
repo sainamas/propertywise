@@ -8,6 +8,7 @@ from ml_model import (
     predict_property_score,
     explain_property_prediction,
 )
+from rag_retrieval import retrieve_documents
 
 
 class PropertyState(TypedDict):
@@ -22,6 +23,7 @@ class PropertyState(TypedDict):
     rental_yield: float
     ml_score: float
     shap_explanations: list
+    rag_context: list
     reasons: list[str]
     risks: list[str]
     explanation: str
@@ -80,6 +82,15 @@ def property_ml_explanation(
     )
 
 
+@tool
+def property_rag_retrieval(
+    query: str,
+) -> list:
+    """Retrieve relevant property guidance from Supabase."""
+
+    return retrieve_documents(query)
+
+
 def decision_router(state: PropertyState):
     return state
 
@@ -118,6 +129,15 @@ def buy_agent(state: PropertyState):
             "age": state["age"],
             "monthly_rent": state["rent"],
             "location": state["location"],
+        }
+    )
+
+    rag_context = property_rag_retrieval.invoke(
+        {
+            "query": (
+                f"What should I consider when buying a property in "
+                f"{state['location']}?"
+            )
         }
     )
 
@@ -166,6 +186,7 @@ def buy_agent(state: PropertyState):
         "rental_yield": rental_yield,
         "ml_score": ml_score,
         "shap_explanations": shap_explanations,
+        "rag_context": rag_context,
         "reasons": reasons,
         "risks": risks,
         "explanation": explanation,
@@ -199,6 +220,15 @@ def sell_agent(state: PropertyState):
             "age": state["age"],
             "monthly_rent": state["rent"],
             "location": state["location"],
+        }
+    )
+
+    rag_context = property_rag_retrieval.invoke(
+        {
+            "query": (
+                f"What should I consider when selling a property in "
+                f"{state['location']}?"
+            )
         }
     )
 
@@ -251,6 +281,7 @@ def sell_agent(state: PropertyState):
         "rental_yield": rental_yield,
         "ml_score": ml_score,
         "shap_explanations": shap_explanations,
+        "rag_context": rag_context,
         "reasons": reasons,
         "risks": risks,
         "explanation": explanation,
