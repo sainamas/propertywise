@@ -9,5 +9,11 @@ langchain-core
 scikit-learn
 shap
 supabase
-sentence-transformers
+torch==2.6.0+cpu
 groq
+pandas
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+sentence-transformers
+python-multipart
