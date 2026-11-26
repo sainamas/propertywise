@@ -1,4 +1,4 @@
-const API_URL = "http://127.0.0.1:8001";
+const API_URL = "https://propertywise-et4z.onrender.com";
 
 let selectedDecision = "buy";
 
