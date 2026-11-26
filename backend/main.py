@@ -1,3 +1,4 @@
+import os
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -22,8 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-JWT_SECRET = "propertywise-super-secret-key-2026"
+JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-key")
 ALGORITHM = "HS256"
 
 
