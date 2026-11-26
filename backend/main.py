@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -70,6 +70,8 @@ class PropertyResponse(BaseModel):
     recommendation: str
     location: str
     rental_yield: float
+    ml_score: float
+    shap_explanations: list[dict]
     reasons: list[str]
     risks: list[str]
     explanation: str
@@ -107,7 +109,6 @@ def verify_token(
         return username
 
     except (JWTError, ValueError):
-        from fastapi import HTTPException
 
         raise HTTPException(
             status_code=401,
@@ -150,8 +151,6 @@ def login(
             "token_type": "bearer",
         }
 
-    from fastapi import HTTPException
-
     raise HTTPException(
         status_code=401,
         detail="Invalid username or password",
@@ -185,6 +184,8 @@ def analyze_property(
         "recommendation": result["recommendation"],
         "location": property_data.location,
         "rental_yield": result["rental_yield"],
+        "ml_score": result["ml_score"],
+        "shap_explanations": result["shap_explanations"],
         "reasons": result["reasons"],
         "risks": result["risks"],
         "explanation": result["explanation"],

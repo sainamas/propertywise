@@ -19,7 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // Login form
-    const loginForm = document.getElementById("loginForm");
+    const loginForm =
+        document.getElementById("loginForm");
 
     if (loginForm) {
         loginForm.addEventListener("submit", login);
@@ -27,16 +28,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // Property form
-    const propertyForm = document.getElementById("propertyForm");
+    const propertyForm =
+        document.getElementById("propertyForm");
 
     if (propertyForm) {
-        propertyForm.addEventListener("submit", analyzeProperty);
+        propertyForm.addEventListener(
+            "submit",
+            analyzeProperty
+        );
     }
 
 
     // Decision cards
-    const buyCard = document.getElementById("buyCard");
-    const sellCard = document.getElementById("sellCard");
+    const buyCard =
+        document.getElementById("buyCard");
+
+    const sellCard =
+        document.getElementById("sellCard");
 
     if (buyCard) {
         buyCard.addEventListener("click", () => {
@@ -52,10 +60,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     // Logout
-    const logoutButton = document.getElementById("logoutButton");
+    const logoutButton =
+        document.getElementById("logoutButton");
 
     if (logoutButton) {
-        logoutButton.addEventListener("click", logout);
+        logoutButton.addEventListener(
+            "click",
+            logout
+        );
     }
 
 });
@@ -69,43 +81,70 @@ async function login(event) {
 
     event.preventDefault();
 
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+    const username =
+        document.getElementById("username").value;
 
-    const loginError = document.getElementById("loginError");
+    const password =
+        document.getElementById("password").value;
+
+    const loginError =
+        document.getElementById("loginError");
 
     loginError.textContent = "";
 
+
     try {
 
-        const response = await fetch(`${API_URL}/login`, {
+        /*
+         * FastAPI OAuth2PasswordRequestForm
+         * expects application/x-www-form-urlencoded
+         * rather than JSON.
+         */
 
-            method: "POST",
+        const formData =
+            new URLSearchParams();
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+        formData.append(
+            "username",
+            username
+        );
 
-            body: JSON.stringify({
-                username: username,
-                password: password
-            })
+        formData.append(
+            "password",
+            password
+        );
 
-        });
+
+        const response = await fetch(
+            `${API_URL}/login`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":
+                        "application/x-www-form-urlencoded"
+                },
+
+                body: formData
+            }
+        );
 
 
         if (!response.ok) {
 
-            const errorData = await response.json();
+            const errorData =
+                await response.json();
 
             throw new Error(
-                errorData.detail || "Login failed"
+                errorData.detail ||
+                "Login failed"
             );
 
         }
 
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
 
         // Store JWT
@@ -122,7 +161,8 @@ async function login(event) {
     catch (error) {
 
         loginError.textContent =
-            error.message || "Unable to connect to PropertyWise API.";
+            error.message ||
+            "Unable to connect to PropertyWise API.";
 
     }
 
@@ -136,13 +176,22 @@ async function login(event) {
 function showLogin() {
 
     const loginSection =
-        document.getElementById("loginSection");
+        document.getElementById(
+            "loginSection"
+        );
 
     const appSection =
-        document.getElementById("appSection");
+        document.getElementById(
+            "appSection"
+        );
 
-    loginSection.classList.remove("hidden");
-    appSection.classList.add("hidden");
+    loginSection.classList.remove(
+        "hidden"
+    );
+
+    appSection.classList.add(
+        "hidden"
+    );
 
 }
 
@@ -154,13 +203,22 @@ function showLogin() {
 function showApp() {
 
     const loginSection =
-        document.getElementById("loginSection");
+        document.getElementById(
+            "loginSection"
+        );
 
     const appSection =
-        document.getElementById("appSection");
+        document.getElementById(
+            "appSection"
+        );
 
-    loginSection.classList.add("hidden");
-    appSection.classList.remove("hidden");
+    loginSection.classList.add(
+        "hidden"
+    );
+
+    appSection.classList.remove(
+        "hidden"
+    );
 
 }
 
@@ -171,7 +229,9 @@ function showApp() {
 
 function logout() {
 
-    localStorage.removeItem("propertywise_token");
+    localStorage.removeItem(
+        "propertywise_token"
+    );
 
     showLogin();
 
@@ -184,26 +244,41 @@ function logout() {
 
 function selectDecision(decision) {
 
-    selectedDecision = decision;
+    selectedDecision =
+        decision;
 
     const buyCard =
-        document.getElementById("buyCard");
+        document.getElementById(
+            "buyCard"
+        );
 
     const sellCard =
-        document.getElementById("sellCard");
+        document.getElementById(
+            "sellCard"
+        );
 
 
     if (decision === "buy") {
 
-        buyCard.classList.add("active");
-        sellCard.classList.remove("active");
+        buyCard.classList.add(
+            "active"
+        );
+
+        sellCard.classList.remove(
+            "active"
+        );
 
     }
 
     else {
 
-        sellCard.classList.add("active");
-        buyCard.classList.remove("active");
+        sellCard.classList.add(
+            "active"
+        );
+
+        buyCard.classList.remove(
+            "active"
+        );
 
     }
 
@@ -220,81 +295,117 @@ async function analyzeProperty(event) {
 
 
     const price =
-        Number(document.getElementById("price").value);
+        Number(
+            document.getElementById(
+                "price"
+            ).value
+        );
 
     const size =
-        Number(document.getElementById("size").value);
+        Number(
+            document.getElementById(
+                "size"
+            ).value
+        );
 
     const age =
-        Number(document.getElementById("age").value);
+        Number(
+            document.getElementById(
+                "age"
+            ).value
+        );
 
     const rent =
-        Number(document.getElementById("rent").value);
+        Number(
+            document.getElementById(
+                "rent"
+            ).value
+        );
 
     const location =
-        document.getElementById("location").value;
+        document.getElementById(
+            "location"
+        ).value.trim();
 
 
     const loadingSection =
-        document.getElementById("loadingSection");
+        document.getElementById(
+            "loadingSection"
+        );
 
     const resultSection =
-        document.getElementById("resultSection");
+        document.getElementById(
+            "resultSection"
+        );
 
 
-    loadingSection.classList.remove("hidden");
-    resultSection.classList.add("hidden");
+    loadingSection.classList.remove(
+        "hidden"
+    );
+
+    resultSection.classList.add(
+        "hidden"
+    );
 
 
     const token =
-        localStorage.getItem("propertywise_token");
+        localStorage.getItem(
+            "propertywise_token"
+        );
 
 
     try {
 
-        const response = await fetch(
-            `${API_URL}/analyze`,
-            {
+        const response =
+            await fetch(
+                `${API_URL}/analyze`,
+                {
 
-                method: "POST",
+                    method: "POST",
 
-                headers: {
+                    headers: {
 
-                    "Content-Type":
-                        "application/json",
+                        "Content-Type":
+                            "application/json",
 
-                    "Authorization":
-                        `Bearer ${token}`
+                        "Authorization":
+                            `Bearer ${token}`
 
-                },
+                    },
 
-                body: JSON.stringify({
+                    body: JSON.stringify({
 
-                    decision:
-                        selectedDecision,
+                        decision:
+                            selectedDecision,
 
-                    price:
-                        price,
+                        price:
+                            price,
 
-                    size:
-                        size,
+                        size:
+                            size,
 
-                    age:
-                        age,
+                        age:
+                            age,
 
-                    rent:
-                        rent,
+                        rent:
+                            rent,
 
-                    location:
-                        location
+                        location:
+                            location
 
-                })
+                    })
 
-            }
-        );
+                }
+            );
 
 
-        if (response.status === 401) {
+        // --------------------------
+        // SESSION EXPIRED
+        // --------------------------
+
+        if (
+            response.status === 401
+        ) {
 
             localStorage.removeItem(
                 "propertywise_token"
@@ -309,6 +420,10 @@ async function analyzeProperty(event) {
         }
 
 
+        // --------------------------
+        // API ERROR
+        // --------------------------
+
         if (!response.ok) {
 
             const errorData =
@@ -322,9 +437,12 @@ async function analyzeProperty(event) {
         }
 
 
+        // --------------------------
+        // SUCCESS
+        // --------------------------
+
         const data =
             await response.json();
-
 
         displayResults(data);
 
@@ -341,7 +459,9 @@ async function analyzeProperty(event) {
 
     finally {
 
-        loadingSection.classList.add("hidden");
+        loadingSection.classList.add(
+            "hidden"
+        );
 
     }
 
@@ -355,27 +475,37 @@ async function analyzeProperty(event) {
 function displayResults(data) {
 
     const resultSection =
-        document.getElementById("resultSection");
+        document.getElementById(
+            "resultSection"
+        );
 
+
+    // --------------------------
+    // BASIC RESULT
+    // --------------------------
 
     document.getElementById(
         "score"
-    ).textContent = data.score;
+    ).textContent =
+        data.score;
 
 
     document.getElementById(
         "recommendation"
-    ).textContent = data.recommendation;
+    ).textContent =
+        data.recommendation;
 
 
     document.getElementById(
         "resultLocation"
-    ).textContent = data.location;
+    ).textContent =
+        data.location;
 
 
     document.getElementById(
         "rentalYield"
-    ).textContent = data.rental_yield;
+    ).textContent =
+        data.rental_yield;
 
 
     document.getElementById(
@@ -384,49 +514,149 @@ function displayResults(data) {
         selectedDecision.toUpperCase();
 
 
-    // Reasons
+    // --------------------------
+    // REASONS
+    // --------------------------
+
     const reasonsList =
-        document.getElementById("reasonsList");
+        document.getElementById(
+            "reasonsList"
+        );
 
     reasonsList.innerHTML = "";
+
 
     data.reasons.forEach(reason => {
 
         const li =
-            document.createElement("li");
+            document.createElement(
+                "li"
+            );
 
-        li.textContent = reason;
+        li.textContent =
+            reason;
 
-        reasonsList.appendChild(li);
+        reasonsList.appendChild(
+            li
+        );
 
     });
 
 
-    // Risks
+    // --------------------------
+    // RISKS
+    // --------------------------
+
     const risksList =
-        document.getElementById("risksList");
+        document.getElementById(
+            "risksList"
+        );
 
     risksList.innerHTML = "";
+
 
     data.risks.forEach(risk => {
 
         const li =
-            document.createElement("li");
+            document.createElement(
+                "li"
+            );
 
-        li.textContent = risk;
+        li.textContent =
+            risk;
 
-        risksList.appendChild(li);
+        risksList.appendChild(
+            li
+        );
 
     });
 
 
-    // Explanation
+    // --------------------------
+    // GROQ EXPLANATION
+    // --------------------------
+
     document.getElementById(
         "explanationText"
-    ).textContent = data.explanation;
+    ).textContent =
+        data.explanation;
 
 
-    resultSection.classList.remove("hidden");
+    /*
+     * Optional ML/SHAP display.
+     *
+     * These elements are only updated if
+     * they already exist in index.html.
+     *
+     * This keeps the current frontend
+     * working while we add the new
+     * customer-facing sections.
+     */
+
+    const mlScoreElement =
+        document.getElementById(
+            "mlScore"
+        );
+
+    if (mlScoreElement) {
+
+        mlScoreElement.textContent =
+            data.ml_score;
+
+    }
+
+
+    const shapList =
+        document.getElementById(
+            "shapList"
+        );
+
+    if (shapList) {
+
+        shapList.innerHTML = "";
+
+
+        data.shap_explanations.forEach(
+            factor => {
+
+                const li =
+                    document.createElement(
+                        "li"
+                    );
+
+                const contribution =
+                    Number(
+                        factor.contribution
+                    );
+
+
+                const sign =
+                    contribution >= 0
+                        ? "+"
+                        : "";
+
+
+                li.textContent =
+                    `${factor.feature}: ${sign}${contribution}`;
+
+
+                shapList.appendChild(
+                    li
+                );
+
+            }
+        );
+
+    }
+
+
+    // --------------------------
+    // SHOW RESULT
+    // --------------------------
+
+    resultSection.classList.remove(
+        "hidden"
+    );
 
 
     resultSection.scrollIntoView({
@@ -449,20 +679,27 @@ function startNewAnalysis() {
 
     document.getElementById(
         "resultSection"
-    ).classList.add("hidden");
+    ).classList.add(
+        "hidden"
+    );
 
 
     document.getElementById(
         "buyCard"
-    ).classList.add("active");
+    ).classList.add(
+        "active"
+    );
 
 
     document.getElementById(
         "sellCard"
-    ).classList.remove("active");
+    ).classList.remove(
+        "active"
+    );
 
 
-    selectedDecision = "buy";
+    selectedDecision =
+        "buy";
 
 
     window.scrollTo({
